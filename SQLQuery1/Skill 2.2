@@ -1,0 +1,75 @@
+--skill 2.2
+
+--22.01a
+--1. zapytanie 2.w nawias 3.siegamy do tabeli 4.warunek where
+SELECT surname, first_name
+FROM students
+WHERE student_id in
+(SELECT student_id
+FROM students_modules
+WHERE module_id in
+(SELECT module_id
+FROM modules
+WHERE module_name = 'mathematics'))
+ORDER BY surname     
+
+--22.01B - funkcja
+--dodajemy create bo tworzymy funkcje or alter zeby nadpisac jak byla tworzona wczesniej
+CREATE OR ALTER FUNCTION studmod_f (@module VARCHAR(100))
+RETURNS TABLE AS RETURN --zwraca tabelę
+SELECT surname, first_name
+FROM students
+WHERE student_id in
+(SELECT student_id
+FROM students_modules
+WHERE module_id in
+(SELECT module_id
+FROM modules
+WHERE module_name = @module))
+--uruchamiamy funkcję
+SELECT * 
+FROM studmod_f('mathematics')
+ORDER BY surname
+
+--22.01B - widok
+CREATE OR ALTER VIEW studmod_v AS
+SELECT surname, first_name
+FROM students
+WHERE student_id in
+(SELECT student_id
+FROM students_modules
+WHERE module_id in
+(SELECT module_id
+FROM modules
+--trzeba obejsc bo nie mozna bezposrednio parametru podac do widoku
+WHERE module_name = SESSION_CONTEXT(N'module')))
+--uruchamiamy widok(musimy tworzyć session context, za kazdym razem po zamknieciu sesji)
+EXEC sp_set_session_context @key=N'module', @value = 'statistics' -- tworzenie session context
+--uruchamianie widoku
+SELECT
+* FROM studmod_v
+
+--22.06a
+SELECT TOP(1)*
+FROM students s INNER JOIN student_grades sg ON s.student_id = sg.student_id
+WHERE s.student_id = 2
+ORDER BY exam_date DESC
+--teraz przekształcamy zapytanie(partition by dzieli rekordy np student_id 1.1.1.1.1 potem 2.2.2.2)
+WITH c AS --common table expression( w obiekce c jest tabela a w zapytaniu zewnętrznym ją wykorzystujemy, nazwy tabel nie mogą się powtarzać)
+(SELECT s.student_id, surname, exam_date, grade,
+ROW_NUMBER() OVER(PARTITION BY s.student_id ORDER BY exam_date DESC) AS row_num --numeracaja rekordow po lewo to tylko management studio, row_num to pola numeracji rekordów
+FROM students s INNER JOIN student_grades sg ON s.student_id = sg.student_id)
+--wybieramy tabele
+SELECT * 
+FROM c
+WHERE row_num = 1
+--derived table :
+SELECT *
+FROM
+(SELECT s.student_id, surname, exam_date, grade,
+ROW_NUMBER() OVER(PARTITION BY s.student_id ORDER BY exam_date DESC) AS row_num --numeracaja rekordow po lewo to tylko management studio, row_num to pola numeracji rekordów
+FROM students s INNER JOIN student_grades sg ON s.student_id = sg.student_id) c
+WHERE row_num = 1
+--22.02
+SELECT * 
+FROM student_grades
