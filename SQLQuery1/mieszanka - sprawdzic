@@ -1,0 +1,104 @@
+
+
+--4a.06
+SELECT group_no, COUNT(student_id) no_of_students
+FROM students
+GROUP BY group_no
+HAVING COUNT(student_id) >= 3
+ORDER BY no_of_students
+--other version(without null)
+SELECT group_no, COUNT(*) AS no_of_students
+FROM students
+WHERE group_no IN (SELECT group_no FROM students GROUP BY group_no HAVING COUNT(*) >= 3)
+GROUP BY group_no
+ORDER BY no_of_students ASC
+--4a.01
+
+--4a.02
+SELECT COUNT(group_no) AS no_of_students
+FROM students
+--4a.03
+SELECT COUNT(*) AS no_of_students
+FROM students
+WHERE group_no is null
+--4a.04
+SELECT COUNT(DISTINCT group_no) AS no_of_groups
+FROM students
+--4a.05
+SELECT group_no, COUNT(student_id) AS no_of_students
+FROM students
+GROUP BY group_no
+HAVING COUNT(student_id) > 0
+ORDER BY no_of_students ASC
+--4a.07
+
+--4a.08
+---------------------------------------------------------------------
+--Skill 2.1. Query data by using subqueries and APPLY.
+--21.01
+SELECT module_id, module_name
+FROM modules
+WHERE module_id NOT IN --zapytanie negatywne
+(SELECT module_id
+FROM students_modules)
+ORDER BY module_name
+--21.04 jako podzapytanie
+SELECT student_id, surname, first_name
+FROM students
+WHERE student_id IN
+(SELECT student_id
+FROM modules m INNER JOIN students_modules sm ON m.module_id = sm.module_id
+WHERE module_name = 'mathematics' 
+AND student_id NOT IN
+(SELECT student_id
+FROM modules m INNER JOIN students_modules sm ON m.module_id = sm.module_id
+WHERE module_name = 'statistics'))
+--21.11
+SELECT module_name
+FROM modules
+WHERE no_of_hours >
+(SELECT MIN(no_of_hours) --najpierw zapytanie wew a potem zew
+FROM modules)
+--21.14a
+SELECT *
+FROM modules m
+WHERE 
+EXISTS
+(SELECT preceding_module  WHERE preceding_module = 3)
+--21.02 QUERY -> DISPLAY EXECUTION TIME OR STH LIKE THAT
+SELECT student_id
+FROM student_grades
+WHERE exam_date = '2018-03-22'
+INTERSECT
+SELECT student_id
+FROM student_grades
+WHERE exam_date = '2018-09-30'
+ORDER BY student_id DESC
+--
+SELECT student_id
+FROM student_grades
+WHERE exam_date = '2018-03-22'
+AND student_id IN (SELECT student_id FROM student_grades WHERE exam_date = '2018-09-30')
+ORDER BY student_id DESC
+
+--21.03
+SELECT student_id,surname,first_name
+FROM students
+WHERE student_id IN
+(SELECT student_id
+FROM students_modules
+WHERE module_id = 2
+INTERSECT
+SELECT student_id
+FROM students_modules
+WHERE module_id = 4)
+--21.05
+SELECT first_name,surname,group_no
+FROM students
+WHERE group_no LIKE 'DMIe%1'
+AND student_id NOT IN
+(SELECT student_id
+FROM students_modules sm INNER JOIN modules m 
+ON sm.module_id = m.module_id
+WHERE module_name = 'Ancient history')
+
