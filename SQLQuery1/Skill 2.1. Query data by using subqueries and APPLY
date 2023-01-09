@@ -1,0 +1,119 @@
+--Skill 2.1. Query data by using subqueries and APPLY.
+--21.01
+SELECT module_id, module_name
+FROM modules
+WHERE module_id NOT IN --zapytanie negatywne
+(SELECT module_id
+FROM students_modules)
+ORDER BY module_name
+--21.02 QUERY -> DISPLAY EXECUTION TIME OR STH LIKE THAT
+SELECT student_id
+FROM student_grades
+WHERE exam_date = '2018-03-22'
+INTERSECT
+SELECT student_id
+FROM student_grades
+WHERE exam_date = '2018-09-30'
+ORDER BY student_id DESC
+--
+SELECT student_id
+FROM student_grades
+WHERE exam_date = '2018-03-22'
+AND student_id IN (SELECT student_id FROM student_grades WHERE exam_date = '2018-09-30')
+ORDER BY student_id DESC
+--21.03
+SELECT student_id,surname,first_name
+FROM students
+WHERE student_id IN
+(SELECT student_id
+FROM students_modules
+WHERE module_id = 2
+INTERSECT
+SELECT student_id
+FROM students_modules
+WHERE module_id = 4)
+--21.04 jako podzapytanie
+SELECT student_id, surname, first_name
+FROM students
+WHERE student_id IN
+(SELECT student_id
+FROM modules m INNER JOIN students_modules sm ON m.module_id = sm.module_id
+WHERE module_name = 'mathematics' 
+AND student_id NOT IN
+(SELECT student_id
+FROM modules m INNER JOIN students_modules sm ON m.module_id = sm.module_id
+WHERE module_name = 'statistics'))
+--21.05
+SELECT first_name,surname,group_no
+FROM students
+WHERE group_no LIKE 'DMIe%1'
+AND student_id NOT IN
+(SELECT student_id
+FROM students_modules sm INNER JOIN modules m 
+ON sm.module_id = m.module_id
+WHERE module_name = 'Ancient history')
+--21.06
+--modules
+SELECT TOP 1 module_name, no_of_hours
+FROM modules
+ORDER BY no_of_hours ASC
+--21.07
+--students,student_grades
+SELECT s.student_id,surname, grade
+FROM students s LEFT JOIN student_grades sg ON s.student_id = sg.student_id
+WHERE grade > ANY (
+SELECT grade 
+FROM student_grades)
+--21.08 - ??
+--students
+SELECT *
+FROM students
+WHERE date_of_birth > ALL (SELECT date_of_birth FROM students WHERE date_of_birth IS NOT NULL)
+UNION
+SELECT *
+FROM students
+WHERE date_of_birth < ALL (SELECT date_of_birth FROM students WHERE date_of_birth IS NOT NULL)
+--21.09a,b - ??
+
+--21.10
+--modules,
+SELECT module_name, no_of_hours
+FROM modules
+WHERE no_of_hours = (SELECT MAX(no_of_hours) FROM modules)
+--21.11
+SELECT module_name
+FROM modules
+WHERE no_of_hours >
+(SELECT MIN(no_of_hours) --najpierw zapytanie wew a potem zew
+FROM modules)
+--21.12a
+SELECT *
+FROM students s
+WHERE date_of_birth = (SELECT MIN(date_of_birth) FROM students WHERE group_no = s.group_no)
+/*Warunek WHERE group_no = s.group_no sprawia, że podzapytanie skorelowane zwraca tylko te rekordy z tabeli students, które mają taką samą wartość w kolumnie group_no jak rekord bieżący (tzn. rekord, dla którego obecnie wykonywane jest zewnętrzne zapytanie). W ten sposób otrzymujemy listę studentów z tej samej grupy, co bieżący student. Następnie z tej listy za pomocą funkcji MIN znajdujemy studenta z najstarszą datą urodzenia i porównujemy ją z datą urodzenia bieżącego studenta (s.date_of_birth). Jeśli są równe, to oznacza, że bieżący student jest najstarszym studentem w swojej grupie i rekord ten jest zwrócony przez zapytanie. */
+--21.12b
+SELECT DISTINCT group_no
+FROM students
+ORDER BY group_no;
+--21.13
+SELECT S.student_id, surname, first_name
+FROM students s INNER JOIN student_grades sg ON s.student_id = sg.student_id
+WHERE grade LIKE '5.0'
+--21.14a
+SELECT *
+FROM modules m
+WHERE 
+EXISTS
+(SELECT preceding_module  WHERE preceding_module = 3)
+--21.14b
+SELECT * 
+FROM modules m
+WHERE
+EXISTS
+(SELECT preceding_module WHERE preceding_module = 4)
+--21.15a - ??
+--SELECT *
+--FROM students s
+--CROSS APPLY (SELECT MIN(planned_exam_date) FROM students_modules sm WHERE sm.student_id = s.student_id)
+--21.15b - ??
+--powtórzyć operator APPLY
